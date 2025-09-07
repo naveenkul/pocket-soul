@@ -38,7 +38,7 @@ pip-delete-this-directory.txt
 
 # Generated Files & Content
 generated_files/
-*.mp4
+public/videos
 *.wav
 *.mp3
 *.avi

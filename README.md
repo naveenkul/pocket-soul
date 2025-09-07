@@ -10,6 +10,12 @@
 
 Pocket Soul transforms any smartphone into a **holographic AI companion** that can see, hear, speak, and express emotions through dynamic character animations. Using cutting-edge AI services, it creates an immersive conversational experience with:
 
+> **Example Character**: See [`assets/sad_character.mp4`](assets/sad_character.mp4) for reference character format and styling.
+
+
+
+
+
 - 🎤 **Real-time voice conversations** (Whisper + Gemini + ElevenLabs)
 - 🎬 **Emotion-based video streaming** with character animations
 - 📱 **Holographic display** optimized for smartphone hologram projectors
