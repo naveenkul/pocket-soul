@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pocket Soul - Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #001122 0%, #003366 100%);
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #0ff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card h2 {
+            color: #0ff;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .qr-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .qr-box {
+            text-align: center;
+        }
+        
+        .qr-box img {
+            width: 150px;
+            height: 150px;
+            border: 2px solid #0ff;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+        }
+        
+        .qr-box p {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #888;
+            word-break: break-all;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0ff, #0088ff);
+            border: none;
+            color: #000;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1em;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .mood-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .mood-btn {
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #0ff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .mood-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .mood-btn.active {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: #0ff;
+        }
+        
+        .status {
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: rgba(0, 255, 0, 0.2);
+            color: #0f0;
+        }
+        
+        .status.disconnected {
+            background: rgba(255, 0, 0, 0.2);
+            color: #f00;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .metric-item {
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 28px;
+            color: #0ff;
+            font-weight: bold;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        #response-output {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #0f0;
+            white-space: pre-wrap;
+        }
+        
+        .judge-banner {
+            background: linear-gradient(90deg, #ff0, #0ff);
+            color: #000;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Pocket Soul</h1>
+        <p class="subtitle">$3 Holographic AI powered by Gemini 2.5 Flash Image</p>
+        
+        <div class="judge-banner" id="judge-banner" style="display: none;">
+            🏆 HACKATHON DEMO MODE - Gemini 2.5 Flash Image Generating Live! 🏆
+        </div>
+        
+        <div class="grid">
+            <!-- Connection Card -->
+            <div class="card">
+                <h2>📱 Phone Display Connection</h2>
+                <div class="qr-container" id="qr-container">
+                    <p>Loading QR codes...</p>
+                </div>
+                <p style="text-align: center; margin-top: 20px;">
+                    Status: <span class="status disconnected" id="connection-status">Connecting...</span>
+                </p>
+                <p style="text-align: center; margin-top: 10px; color: #888;">
+                    Connected Displays: <span id="display-count">0</span>
+                </p>
+            </div>
+            
+            <!-- Input Card -->
+            <div class="card">
+                <h2>💬 Talk to Pocket Soul</h2>
+                <div style="text-align: center; padding: 15px; background: rgba(0, 255, 255, 0.05); border-radius: 8px; margin-bottom: 20px;">
+                    <div style="font-size: 18px; color: #0ff; margin-bottom: 10px;">
+                        🎤 Press and hold <kbd style="padding: 5px 10px; background: #333; border-radius: 4px;">Space</kbd> to record
+                    </div>
+                    <div id="recording-status" style="font-size: 14px; color: #888;">
+                        Ready to record
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Or type your message:</label>
+                    <textarea id="user-input" placeholder="Type anything... I'll detect your mood and respond accordingly!"></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>Or select a mood:</label>
+                    <div class="mood-selector">
+                        <div class="mood-btn" data-mood="happy">😊 Happy</div>
+                        <div class="mood-btn" data-mood="sad">😢 Sad</div>
+                        <div class="mood-btn" data-mood="excited">🎉 Excited</div>
+                        <div class="mood-btn" data-mood="calm">😌 Calm</div>
+                        <div class="mood-btn" data-mood="angry">😠 Angry</div>
+                    </div>
+                </div>
+                
+                <button onclick="sendMessage()" id="send-btn">
+                    Generate Response
+                </button>
+                
+                <button onclick="toggleJudgeMode()" style="margin-left: 10px; background: linear-gradient(135deg, #ff0, #f00);">
+                    Judge Mode
+                </button>
+            </div>
+            
+            <!-- Response Card -->
+            <div class="card">
+                <h2>🤖 AI Response</h2>
+                <div id="response-output">
+                    Ready to chat! Your holographic companion awaits...
+                </div>
+            </div>
+            
+            <!-- Metrics Card -->
+            <div class="card">
+                <h2>📊 Performance Metrics</h2>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value" id="generation-count">0</div>
+                        <div class="metric-label">Generations</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="current-mood">Calm</div>
+                        <div class="metric-label">Current Mood</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="latency">--</div>
+                        <div class="metric-label">Latency (ms)</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="fps">0</div>
+                        <div class="metric-label">Stream FPS</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Demo Presets -->
+            <div class="card">
+                <h2>🎭 Demo Presets</h2>
+                <button onclick="runDemo('greeting')">Friendly Greeting</button>
+                <button onclick="runDemo('hackathon')" style="margin-left: 10px;">Hackathon Pitch</button>
+                <button onclick="runDemo('technical')" style="margin-left: 10px;">Technical Demo</button>
+                <button onclick="runDemo('emotion')" style="margin-left: 10px;">Emotion Showcase</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/audio-recorder.js"></script>
+    <script>
+        let socket = null;
+        let selectedMood = null;
+        let judgeMode = false;
+        let generationCount = 0;
+        let audioRecorder = null;
+        let isRecording = false;
+        let spacePressed = false;
+        
+        // Initialize connection
+        function init() {
+            socket = io(window.location.origin);
+            
+            socket.on('connect', () => {
+                console.log('Control panel connected');
+                socket.emit('identify', 'control');
+                updateStatus('connected');
+            });
+            
+            socket.on('disconnect', () => {
+                updateStatus('disconnected');
+            });
+            
+            socket.on('generation-complete', (data) => {
+                if (data.generationCount) {
+                    generationCount = data.generationCount;
+                    document.getElementById('generation-count').textContent = data.generationCount;
+                }
+                if (data.mood) {
+                    document.getElementById('current-mood').textContent = 
+                        data.mood.charAt(0).toUpperCase() + data.mood.slice(1);
+                }
+            });
+            
+            // Load connection info
+            loadConnectionInfo();
+        }
+        
+        async function loadConnectionInfo() {
+            try {
+                const response = await fetch('/api/connection');
+                const data = await response.json();
+                
+                const container = document.getElementById('qr-container');
+                container.innerHTML = '';
+                
+                if (data.connections.local) {
+                    const box = document.createElement('div');
+                    box.className = 'qr-box';
+                    box.innerHTML = `
+                        <img src="${data.connections.local.qr}" alt="Local QR">
+                        <p>${data.connections.local.url}</p>
+                    `;
+                    container.appendChild(box);
+                }
+                
+                if (data.connections.ngrok) {
+                    const box = document.createElement('div');
+                    box.className = 'qr-box';
+                    box.innerHTML = `
+                        <img src="${data.connections.ngrok.qr}" alt="Ngrok QR">
+                        <p>Ngrok (Public)</p>
+                    `;
+                    container.appendChild(box);
+                }
+            } catch (err) {
+                console.error('Failed to load connection info:', err);
+            }
+        }
+        
+        function updateStatus(status) {
+            const elem = document.getElementById('connection-status');
+            elem.className = `status ${status}`;
+            elem.textContent = status === 'connected' ? 'Connected' : 'Disconnected';
+        }
+        
+        // Mood selection
+        document.querySelectorAll('.mood-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedMood = btn.dataset.mood;
+            });
+        });
+        
+        async function sendMessage() {
+            const input = document.getElementById('user-input').value;
+            if (!input && !selectedMood) return;
+            
+            const btn = document.getElementById('send-btn');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            
+            const output = document.getElementById('response-output');
+            output.textContent = 'Processing your message...';
+            
+            try {
+                // Send via WebSocket for real-time processing
+                socket.emit('user-input', {
+                    text: input,
+                    mood: selectedMood
+                });
+                
+                // Also make API call for response
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: input, mood: selectedMood })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    output.textContent = `✨ Generated ${data.mood} response!\nGeneration #${data.generationCount}\n\nVideo and audio are streaming to your hologram display.`;
+                } else {
+                    output.textContent = `Error: ${data.error}`;
+                }
+            } catch (err) {
+                output.textContent = `Error: ${err.message}`;
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Generate Response';
+        }
+        
+        function toggleJudgeMode() {
+            judgeMode = !judgeMode;
+            document.getElementById('judge-banner').style.display = judgeMode ? 'block' : 'none';
+            
+            if (judgeMode) {
+                runDemo('hackathon');
+            }
+        }
+        
+        function runDemo(type) {
+            const demos = {
+                greeting: "Hello! I'm so happy to meet you today!",
+                hackathon: "Watch as Gemini 2.5 Flash Image generates my appearance in real-time! Every pixel you see is created by AI based on our conversation!",
+                technical: "I'm using Gemini's nano banana model at just $0.039 per image to create infinite visual variations. Combined with Veo3 animations and ElevenLabs voice, I'm a complete AI companion for just $3!",
+                emotion: "I'm feeling a bit sad right now... but wait, now I'm getting excited! Watch how my appearance changes with my emotions!"
+            };
+            
+            document.getElementById('user-input').value = demos[type];
+            
+            // Auto-select mood for emotion demo
+            if (type === 'emotion') {
+                const moods = ['happy', 'sad', 'excited', 'calm'];
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (i >= moods.length) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    document.querySelector(`[data-mood="${moods[i]}"]`).click();
+                    sendMessage();
+                    i++;
+                }, 5000);
+            } else {
+                sendMessage();
+            }
+        }
+        
+        // Initialize audio recorder
+        async function initAudioRecorder() {
+            audioRecorder = new AudioRecorder();
+            await audioRecorder.initialize();
+            
+            audioRecorder.onStop = async (audioBlob) => {
+                console.log(`Audio recording complete: ${audioBlob.size} bytes, sending for transcription...`);
+                const output = document.getElementById('response-output');
+                
+                // Check if audio is long enough (minimum 2KB for ~0.1s+ audio)
+                if (audioBlob.size < 2000) {
+                    console.warn(`Audio too short: ${audioBlob.size} bytes`);
+                    output.textContent = 'Recording too short, please hold Space longer (at least 0.5 seconds)';
+                    return;
+                }
+                
+                output.textContent = 'Transcribing your speech...';
+                
+                // Convert blob to base64
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    
+                    // Send audio for processing
+                    try {
+                        const response = await fetch('/api/audio/process', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                audio: base64Audio,
+                                mood: selectedMood 
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            output.textContent = `You said: "${data.transcription}"\n\nAI Response: ${data.response}\n\nPlaying audio response...`;
+                            
+                            // Play audio response if available
+                            if (data.audio) {
+                                const audioData = atob(data.audio);
+                                const audioArray = new Uint8Array(audioData.length);
+                                for (let i = 0; i < audioData.length; i++) {
+                                    audioArray[i] = audioData.charCodeAt(i);
+                                }
+                                const audioBlob = new Blob([audioArray], { type: 'audio/mpeg' });
+                                const audioUrl = URL.createObjectURL(audioBlob);
+                                const audio = new Audio(audioUrl);
+                                audio.play();
+                            }
+                        } else {
+                            output.textContent = `Error: ${data.error}`;
+                        }
+                    } catch (err) {
+                        output.textContent = `Error: ${err.message}`;
+                    }
+                };
+                reader.readAsDataURL(audioBlob);
+            };
+        }
+        
+        // Space key push-to-talk
+        document.addEventListener('keydown', async (e) => {
+            if (e.code === 'Space' && !spacePressed && !e.repeat) {
+                e.preventDefault();
+                spacePressed = true;
+                
+                if (!isRecording) {
+                    isRecording = true;
+                    const output = document.getElementById('response-output');
+                    const status = document.getElementById('recording-status');
+                    output.textContent = '🔴 Recording... (Release Space to stop)';
+                    status.textContent = '🔴 Recording...';
+                    status.style.color = '#f00';
+                    
+                    if (!audioRecorder) {
+                        await initAudioRecorder();
+                    }
+                    
+                    await audioRecorder.start();
+                }
+            }
+        });
+        
+        document.addEventListener('keyup', async (e) => {
+            if (e.code === 'Space' && spacePressed) {
+                e.preventDefault();
+                spacePressed = false;
+                
+                if (isRecording) {
+                    isRecording = false;
+                    const output = document.getElementById('response-output');
+                    const status = document.getElementById('recording-status');
+                    output.textContent = 'Processing...';
+                    status.textContent = 'Processing...';
+                    status.style.color = '#ff0';
+                    
+                    if (audioRecorder) {
+                        audioRecorder.stop();
+                    }
+                    
+                    // Reset status after processing
+                    setTimeout(() => {
+                        if (!isRecording) {
+                            status.textContent = 'Ready to record';
+                            status.style.color = '#888';
+                        }
+                    }, 3000);
+                }
+            }
+        });
+        
+        // Initialize on load
+        init();
+        initAudioRecorder();
+        
+        // Auto-refresh connection info
+        setInterval(loadConnectionInfo, 10000);
+    </script>
+</body>
+</html>

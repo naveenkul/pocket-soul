@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Pocket Soul - Mobile Display</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Fullscreen improvements */
+    html:-webkit-full-screen {
+      width: 100%;
+      height: 100%;
+    }
+
+    html:-moz-full-screen {
+      width: 100%;
+      height: 100%;
+    }
+
+    html:fullscreen {
+      width: 100%;
+      height: 100%;
+    }
+
+    .mobile-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Video Container */
+    .video-container {
+      flex: 1;
+      position: relative;
+      background: #000;
+    }
+
+    #displayVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      transform: rotate(90deg);
+    }
+
+    /* Status Overlay */
+    .status-overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .connection-status {
+      display: inline-block;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 20px;
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+    }
+
+    .connection-status.connected {
+      color: #4ade80;
+    }
+
+    .connection-status.disconnected {
+      color: #ef4444;
+    }
+
+    /* Emotion Indicator */
+    .emotion-overlay {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .emotion-indicator {
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+      text-transform: capitalize;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      transition: opacity 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .audio-indicator {
+      background: rgba(0, 0, 0, 0.8);
+      color: #4ade80;
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .audio-indicator.playing {
+      opacity: 1;
+      animation: pulse 2s infinite;
+    }
+
+    /* Loading State */
+    .loading-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: 50;
+    }
+
+    .loading-container.hidden {
+      display: none;
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .loading-text {
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .connection-info {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    /* Animations */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Fullscreen button */
+    .fullscreen-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 12px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .fullscreen-btn:hover,
+    .fullscreen-btn:active {
+      background: rgba(0, 0, 0, 0.9);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: scale(1.1);
+    }
+
+    .fullscreen-btn:focus {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 2px;
+    }
+
+    /* Hide scrollbars */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+
+    html {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- Loading State -->
+    <div class="loading-container" id="loadingContainer">
+      <div class="logo">🔮</div>
+      <div class="loading-text">Pocket Soul</div>
+      <div class="loading-text">Hologram Display</div>
+      <div class="spinner"></div>
+      <div class="connection-info">
+        <p>Connecting to server...</p>
+        <p>Waiting for content...</p>
+      </div>
+    </div>
+
+    <!-- Main Display -->
+    <div class="video-container">
+      <video id="displayVideo" autoplay loop muted playsinline>
+        Your browser does not support video playback.
+      </video>
+      
+      <!-- Audio element for sound -->
+      <audio id="displayAudio" autoplay></audio>
+    </div>
+
+    <!-- Minimal UI - Only show emotion indicator -->
+    <div class="emotion-overlay">
+      <div class="emotion-indicator" id="emotionIndicator">
+        neutral
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    class MobileDisplay {
+      constructor() {
+        this.socket = null;
+        this.isConnected = false;
+        this.currentEmotion = 'neutral';
+        
+        this.init();
+      }
+      
+      init() {
+        console.log('Initializing mobile display...');
+        
+        this.initElements();
+        this.initSocket();
+        this.initFullscreen();
+      }
+      
+      initElements() {
+        this.loadingContainer = document.getElementById('loadingContainer');
+        this.connectionStatus = document.getElementById('connectionStatus');
+        this.emotionIndicator = document.getElementById('emotionIndicator');
+        this.audioIndicator = document.getElementById('audioIndicator');
+        this.displayVideo = document.getElementById('displayVideo');
+        this.displayAudio = document.getElementById('displayAudio');
+        
+        // Video event listeners
+        this.displayVideo.addEventListener('loadstart', () => {
+          console.log('Video loading started');
+        });
+        
+        this.displayVideo.addEventListener('loadeddata', () => {
+          console.log('Video loaded successfully');
+          this.hideLoading();
+        });
+        
+        this.displayVideo.addEventListener('error', (e) => {
+          console.error('Video error:', e);
+        });
+        
+        // Audio event listeners
+        this.displayAudio.addEventListener('play', () => {
+          this.audioIndicator.classList.add('playing');
+        });
+        
+        this.displayAudio.addEventListener('ended', () => {
+          this.audioIndicator.classList.remove('playing');
+        });
+      }
+      
+      initSocket() {
+        this.socket = io();
+        
+        // Identify as mobile/hologram display
+        this.socket.emit('identify', 'mobile');
+        
+        this.socket.on('connect', () => {
+          console.log('Connected to server');
+          this.isConnected = true;
+          this.updateConnectionStatus('Connected', 'connected');
+        });
+        
+        this.socket.on('disconnect', () => {
+          console.log('Disconnected from server');
+          this.isConnected = false;
+          this.updateConnectionStatus('Disconnected', 'disconnected');
+          this.showLoading();
+        });
+        
+        // Handle content display
+        this.socket.on('display-content', (data) => {
+          console.log('Received display content:', data);
+          this.displayContent(data);
+        });
+        
+        // Handle video-specific events (for backward compatibility)
+        this.socket.on('custom-character-ready', (data) => {
+          console.log('Received custom character:', data);
+          this.displayContent({
+            video: data.videoPath ? { url: data.videoPath, emotion: data.emotion } : null,
+            audio: data.audio,
+            text: data.response,
+            emotion: data.emotion
+          });
+        });
+        
+        this.socket.on('error', (error) => {
+          console.error('Socket error:', error);
+        });
+      }
+      
+      initFullscreen() {
+        // Auto-enter fullscreen on mobile
+        if ('ontouchstart' in window) {
+          document.addEventListener('touchstart', () => this.requestFullscreen(), { once: true });
+        }
+        
+        // Auto-hide emotion indicator after 5 seconds, show on emotion change
+        setTimeout(() => {
+          const emotionIndicator = document.getElementById('emotionIndicator');
+          if (emotionIndicator) {
+            emotionIndicator.style.opacity = '0.1';
+          }
+        }, 5000);
+      }
+      
+      updateConnectionStatus(message, className) {
+        this.connectionStatus.textContent = message;
+        this.connectionStatus.className = `connection-status ${className}`;
+      }
+      
+      showLoading() {
+        this.loadingContainer.classList.remove('hidden');
+      }
+      
+      hideLoading() {
+        this.loadingContainer.classList.add('hidden');
+      }
+      
+      displayContent(data) {
+        console.log('Displaying content:', data);
+        
+        // Update emotion and show indicator briefly
+        if (data.emotion) {
+          this.currentEmotion = data.emotion;
+          this.emotionIndicator.textContent = data.emotion;
+          // Show emotion indicator when new emotion arrives, then fade
+          this.emotionIndicator.style.opacity = '1';
+          setTimeout(() => {
+            this.emotionIndicator.style.opacity = '0.1';
+          }, 2000);
+        }
+        
+        // Display video
+        if (data.video && data.video.url) {
+          console.log('Loading video:', data.video.url);
+          this.displayVideo.src = data.video.url;
+          this.displayVideo.load();
+        }
+        
+        // Play audio
+        if (data.audio) {
+          this.playAudio(data.audio);
+        }
+        
+        // Hide loading once content starts
+        setTimeout(() => {
+          this.hideLoading();
+        }, 500);
+      }
+      
+      playAudio(audioBase64) {
+        try {
+          const audioBlob = new Blob([Uint8Array.from(atob(audioBase64), c => c.charCodeAt(0))], {
+            type: 'audio/mpeg'
+          });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          
+          this.displayAudio.src = audioUrl;
+          
+          // Play with better error handling
+          const playPromise = this.displayAudio.play();
+          
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('Audio playing successfully');
+            }).catch(error => {
+              console.warn('Audio autoplay prevented:', error);
+              // Could show a play button here if needed
+            });
+          }
+          
+          // Clean up URL after playing
+          this.displayAudio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+        } catch (error) {
+          console.error('Failed to play audio:', error);
+        }
+      }
+      
+      requestFullscreen() {
+        const element = document.documentElement;
+        
+        if (element.requestFullscreen) {
+          element.requestFullscreen().catch(console.error);
+        } else if (element.webkitRequestFullscreen) {
+          element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+          element.msRequestFullscreen();
+        } else if (element.webkitEnterFullscreen) {
+          element.webkitEnterFullscreen();
+        }
+      }
+      
+      exitFullscreen() {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(console.error);
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+      
+      updateFullscreenButton() {
+        const button = document.getElementById('fullscreenBtn');
+        if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+          button.textContent = '⛶';
+          button.title = 'Exit Fullscreen';
+        } else {
+          button.textContent = '⛶';
+          button.title = 'Enter Fullscreen';
+        }
+      }
+    }
+    
+    // Global fullscreen toggle function
+    function toggleFullscreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+        // Enter fullscreen
+        const element = document.documentElement;
+        
+        if (element.requestFullscreen) {
+          element.requestFullscreen().catch(e => console.log('Fullscreen request failed:', e));
+        } else if (element.webkitRequestFullscreen) {
+          element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+          element.msRequestFullscreen();
+        } else if (element.webkitEnterFullscreen) {
+          element.webkitEnterFullscreen();
+        } else {
+          console.log('Fullscreen not supported');
+        }
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(e => console.log('Exit fullscreen failed:', e));
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        } else if (document.webkitCancelFullScreen) {
+          document.webkitCancelFullScreen();
+        }
+      }
+    }
+    
+    // Initialize the mobile display
+    let mobileDisplay;
+    document.addEventListener('DOMContentLoaded', () => {
+      mobileDisplay = new MobileDisplay();
+    });
+    
+    // Prevent context menu on mobile
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    
+    // Prevent zoom on double tap
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+  </script>
+</body>
+</html>

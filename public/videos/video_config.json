@@ -1,0 +1,83 @@
+{
+  "emotions": {
+    "joy": {
+      "color": "#FFD700",
+      "displayName": "Joy",
+      "transition": "/videos/base_emotions/joy_transition.mp4",
+      "talkingLoops": [
+        "/videos/talking_loops/joy/joy_talking_v1.mp4",
+        "/videos/talking_loops/joy/joy_talking_v2.mp4",
+        "/videos/talking_loops/joy/joy_talking_v3.mp4"
+      ],
+      "description": "Golden yellow with bouncing happiness"
+    },
+    "anger": {
+      "color": "#FF0000",
+      "displayName": "Anger",
+      "transition": "/videos/base_emotions/anger_transition.mp4",
+      "talkingLoops": [
+        "/videos/talking_loops/anger/anger_talking_v1.mp4",
+        "/videos/talking_loops/anger/anger_talking_v2.mp4",
+        "/videos/talking_loops/anger/anger_talking_v3.mp4"
+      ],
+      "description": "Bright red with fiery rage"
+    },
+    "fear": {
+      "color": "#800080",
+      "displayName": "Fear",
+      "transition": "/videos/base_emotions/fear_transition.mp4",
+      "talkingLoops": [
+        "/videos/talking_loops/fear/fear_talking_v1.mp4",
+        "/videos/talking_loops/fear/fear_talking_v2.mp4",
+        "/videos/talking_loops/fear/fear_talking_v3.mp4"
+      ],
+      "description": "Deep purple with nervous trembling"
+    },
+    "disgust": {
+      "color": "#00FF00",
+      "displayName": "Disgust",
+      "transition": "/videos/base_emotions/disgust_transition.mp4",
+      "talkingLoops": [
+        "/videos/talking_loops/disgust/disgust_talking_v1.mp4",
+        "/videos/talking_loops/disgust/disgust_talking_v2.mp4",
+        "/videos/talking_loops/disgust/disgust_talking_v3.mp4"
+      ],
+      "description": "Bright green with disgusted recoiling"
+    },
+    "anxiety": {
+      "color": "#FFA500",
+      "displayName": "Anxiety",
+      "transition": "/videos/base_emotions/anxiety_transition.mp4",
+      "talkingLoops": [
+        "/videos/talking_loops/anxiety/anxiety_talking_v1.mp4",
+        "/videos/talking_loops/anxiety/anxiety_talking_v2.mp4",
+        "/videos/talking_loops/anxiety/anxiety_talking_v3.mp4"
+      ],
+      "description": "Bright orange with fidgeting worry"
+    },
+    "sadness_blue": {
+      "color": "#0000FF",
+      "displayName": "Sadness",
+      "transition": "/videos/base_emotions/sadness_blue_transition.mp4",
+      "talkingLoops": [
+        "/videos/talking_loops/sadness_blue/sadness_blue_talking_v1.mp4",
+        "/videos/talking_loops/sadness_blue/sadness_blue_talking_v2.mp4",
+        "/videos/talking_loops/sadness_blue/sadness_blue_talking_v3.mp4"
+      ],
+      "description": "Deep melancholy blue with teardrops"
+    }
+  },
+  "defaultEmotion": "joy",
+  "transitionDuration": 8000,
+  "loopDuration": 8000,
+  "workflow": {
+    "onEmotionChange": [
+      "1. Play transition video (8 seconds)",
+      "2. After transition completes, start talking loops",
+      "3. Randomly select from 3 talking variations",
+      "4. Loop the selected talking video while user talks"
+    ],
+    "onUserSpeaking": "Play random talking loop from current emotion",
+    "onUserSilent": "Continue last frame or play calm variation"
+  }
+}

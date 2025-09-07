@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>Pocket Soul - Hologram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #0ff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        
+        #hologram-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #001122 0%, #000 100%);
+        }
+        
+        #hologram-canvas {
+            width: 90%;
+            height: 90%;
+            max-width: 512px;
+            max-height: 512px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 
+                0 0 50px rgba(0, 255, 255, 0.5),
+                inset 0 0 50px rgba(0, 255, 255, 0.1);
+            background: #000;
+            border-radius: 10px;
+        }
+        
+        #hologram-video {
+            display: none;
+            width: 90%;
+            height: 90%;
+            max-width: 512px;
+            max-height: 512px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.5);
+            border-radius: 10px;
+            object-fit: contain;
+            background: #000;
+        }
+        
+        #audio-element {
+            display: none;
+        }
+        
+        /* Status overlay */
+        #status-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 5px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+        
+        #status-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+        }
+        
+        .status-dot.connected {
+            background: #0f0;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.streaming {
+            background: #ff0;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-dot.disconnected {
+            background: #f00;
+        }
+        
+        /* Metrics */
+        #metrics-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 11px;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+        
+        #metrics-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .metric {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0ff;
+        }
+        
+        .metric-label {
+            color: #888;
+            margin-top: 2px;
+        }
+        
+        /* Loading screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s;
+        }
+        
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(0, 255, 255, 0.3);
+            border-top-color: #0ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            color: #0ff;
+            font-size: 14px;
+        }
+        
+        /* Mood indicator */
+        #mood-indicator {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            padding: 8px 15px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        /* Fullscreen button */
+        #fullscreen-btn {
+            position: absolute;
+            bottom: 70px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 20px;
+            z-index: 10;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #fullscreen-btn:active {
+            transform: scale(1.1);
+            background: rgba(0, 255, 255, 0.3);
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Holographic effect */
+        .hologram-effect {
+            animation: hologram 3s ease-in-out infinite;
+        }
+        
+        @keyframes hologram {
+            0%, 100% { 
+                filter: hue-rotate(0deg) brightness(1);
+            }
+            50% { 
+                filter: hue-rotate(30deg) brightness(1.1);
+            }
+        }
+        
+        /* Hide UI after inactivity */
+        body.hide-ui #status-overlay,
+        body.hide-ui #metrics-overlay,
+        body.hide-ui #mood-indicator,
+        body.hide-ui #fullscreen-btn {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="hologram-container">
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loader"></div>
+            <div class="loading-text">Connecting to Pocket Soul...</div>
+        </div>
+        
+        <!-- Status Overlay -->
+        <div id="status-overlay">
+            <div class="status-item">
+                <div class="status-dot" id="connection-status"></div>
+                <span id="connection-text">Connecting...</span>
+            </div>
+            <div class="status-item">
+                <span id="generation-count">Gen #0</span>
+            </div>
+        </div>
+        
+        <!-- Mood Indicator -->
+        <div id="mood-indicator">
+            Mood: <span id="current-mood">Calm</span>
+        </div>
+        
+        <!-- Main Display -->
+        <canvas id="hologram-canvas" class="hologram-effect"></canvas>
+        <video id="hologram-video" playsinline autoplay muted loop></video>
+        <audio id="audio-element" autoplay></audio>
+        
+        <!-- Metrics Overlay -->
+        <div id="metrics-overlay">
+            <div class="metric">
+                <div class="metric-value" id="fps">0</div>
+                <div class="metric-label">FPS</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="latency">--</div>
+                <div class="metric-label">Latency</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="frames">0</div>
+                <div class="metric-label">Frames</div>
+            </div>
+        </div>
+        
+        <!-- Fullscreen Button -->
+        <div id="fullscreen-btn" onclick="toggleFullscreen()">⛶</div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/hologram-display.js"></script>
+    <script>
+        // Initialize hologram display
+        const hologram = new HologramDisplay();
+        
+        // Fullscreen toggle with better mobile support
+        function toggleFullscreen() {
+            const elem = document.documentElement;
+            
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                // Enter fullscreen
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    // Safari/iOS support
+                    elem.webkitRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    // Safari/iOS support
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+        }
+        
+        // Wake lock to prevent sleep
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock acquired');
+                }
+            } catch (err) {
+                console.error('Wake lock error:', err);
+            }
+        }
+        
+        // Request wake lock on load
+        requestWakeLock();
+        
+        // Re-acquire on visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+        
+        // Hide UI after inactivity
+        let hideUITimeout;
+        function resetUITimeout() {
+            clearTimeout(hideUITimeout);
+            document.body.classList.remove('hide-ui');
+            
+            hideUITimeout = setTimeout(() => {
+                document.body.classList.add('hide-ui');
+            }, 5000);
+        }
+        
+        // Touch/mouse events to show UI
+        document.addEventListener('touchstart', resetUITimeout);
+        document.addEventListener('mousemove', resetUITimeout);
+        
+        // Prevent zoom
+        document.addEventListener('gesturestart', e => e.preventDefault());
+        document.addEventListener('gesturechange', e => e.preventDefault());
+        
+        // Initial UI timeout
+        resetUITimeout();
+    </script>
+</body>
+</html>

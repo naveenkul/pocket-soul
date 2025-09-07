@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Character Demo - Pocket Soul</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #001122 0%, #003366 100%);
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #0ff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+        }
+        
+        .video-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        video {
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid #0ff;
+            border-radius: 15px;
+            background: #000;
+        }
+        
+        .controls {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #0ff, #0088ff);
+            border: none;
+            color: #000;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.4);
+        }
+        
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .suggestion {
+            padding: 8px 16px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .suggestion:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        #status {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #cached-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .cached-item {
+            padding: 5px;
+            margin: 5px 0;
+            background: rgba(0, 255, 255, 0.05);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .cached-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+        
+        #current-character-info {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Custom Character Generator</h1>
+        
+        <div class="video-container">
+            <video id="character-video" controls loop></video>
+        </div>
+        
+        <div id="current-character-info"></div>
+        
+        <div class="controls">
+            <h2>Create Custom Character</h2>
+            
+            <div class="input-group">
+                <input type="text" id="custom-prompt" placeholder="e.g., 'happy cowboy' or 'sad astronaut'" />
+            </div>
+            
+            <button onclick="generateCustomCharacter()">🎨 Generate Character</button>
+            <button onclick="returnToStandard()">🔄 Return to Standard</button>
+            
+            <h3>Quick Suggestions:</h3>
+            <div class="suggestions" id="suggestions"></div>
+            
+            <div id="status"></div>
+        </div>
+        
+        <div class="controls">
+            <h2>Standard Emotions</h2>
+            <button onclick="switchEmotion('joy')">😊 Joy</button>
+            <button onclick="switchEmotion('anger')">😠 Anger</button>
+            <button onclick="switchEmotion('fear')">😨 Fear</button>
+            <button onclick="switchEmotion('disgust')">🤢 Disgust</button>
+            <button onclick="switchEmotion('anxiety')">😰 Anxiety</button>
+            <button onclick="switchEmotion('sadness_blue')">😢 Sadness</button>
+        </div>
+        
+        <div class="controls">
+            <h2>Cached Variants</h2>
+            <button onclick="loadCached()">📦 Load Cached</button>
+            <button onclick="clearCache()">🗑️ Clear Cache</button>
+            <div id="cached-list"></div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/emotion-video-manager.js"></script>
+    <script src="/js/custom-character-manager.js"></script>
+    <script>
+        const videoElement = document.getElementById('character-video');
+        const emotionManager = new EmotionVideoManager(videoElement);
+        const customManager = new CustomCharacterManager(videoElement, emotionManager);
+        
+        // Load suggestions
+        function loadSuggestions() {
+            const suggestions = customManager.getSuggestions();
+            const container = document.getElementById('suggestions');
+            container.innerHTML = suggestions.map(s => 
+                `<div class="suggestion" onclick="useSuggestion('${s}')">${s}</div>`
+            ).join('');
+        }
+        
+        function useSuggestion(text) {
+            document.getElementById('custom-prompt').value = text;
+            generateCustomCharacter();
+        }
+        
+        async function generateCustomCharacter() {
+            const prompt = document.getElementById('custom-prompt').value;
+            if (!prompt) {
+                showStatus('❌ Please enter a character description', 'error');
+                return;
+            }
+            
+            showStatus('🎨 Generating custom character...', 'loading');
+            
+            try {
+                const result = await customManager.requestCustomCharacter(prompt);
+                if (result && result.success) {
+                    showStatus(`✅ Custom character ${result.cached ? 'loaded from cache' : 'generated'}!`, 'success');
+                } else {
+                    showStatus(`❌ Failed to generate character`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function switchEmotion(emotion) {
+            emotionManager.switchEmotion(emotion);
+            showStatus(`🎭 Switched to ${emotion}`, 'info');
+        }
+        
+        function returnToStandard() {
+            customManager.returnToStandardEmotion('joy');
+            showStatus('🔄 Returned to standard emotions', 'info');
+        }
+        
+        async function loadCached() {
+            try {
+                const response = await fetch('/api/custom-character/cached');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const list = document.getElementById('cached-list');
+                    if (data.count === 0) {
+                        list.innerHTML = '<p>No cached variants yet</p>';
+                    } else {
+                        list.innerHTML = data.variants.map(v => 
+                            `<div class="cached-item" onclick="playVariant('${v.path}')">
+                                ${v.emotion} - ${v.customDescription}
+                            </div>`
+                        ).join('');
+                    }
+                    showStatus(`📦 Loaded ${data.count} cached variants`, 'info');
+                }
+            } catch (error) {
+                showStatus(`❌ Error loading cache: ${error.message}`, 'error');
+            }
+        }
+        
+        function playVariant(path) {
+            videoElement.src = path;
+            videoElement.play();
+            showStatus('▶️ Playing cached variant', 'info');
+        }
+        
+        async function clearCache() {
+            if (!confirm('Are you sure you want to clear all cached variants?')) return;
+            
+            try {
+                const response = await fetch('/api/custom-character/cache', {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('🗑️ Cache cleared successfully', 'success');
+                    document.getElementById('cached-list').innerHTML = '';
+                }
+            } catch (error) {
+                showStatus(`❌ Error clearing cache: ${error.message}`, 'error');
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            const colors = {
+                info: '#0ff',
+                success: '#0f0',
+                error: '#f00',
+                loading: '#ff0'
+            };
+            status.style.color = colors[type] || '#fff';
+            status.textContent = message;
+        }
+        
+        // Initialize
+        loadSuggestions();
+        loadCached();
+        
+        // Handle Enter key
+        document.getElementById('custom-prompt').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                generateCustomCharacter();
+            }
+        });
+    </script>
+</body>
+</html>

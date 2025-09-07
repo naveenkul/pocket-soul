@@ -1,0 +1,204 @@
+# Pocket Soul - Git Ignore File
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.crt
+
+# API Keys and Configuration (keep templates)
+config/secrets.json
+config/keys.json
+!.env.example
+
+# Dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Generated Files & Content
+generated_files/
+*.mp4
+*.wav
+*.mp3
+*.avi
+*.mov
+!example_video.mp4
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime Data
+pids/
+*.pid
+*.seed
+*.pid.lock
+.npm
+.eslintcache
+.node_repl_history
+*.tsbuildinfo
+
+# Coverage Directory
+coverage/
+*.lcov
+.nyc_output
+
+# Build Outputs
+dist/
+build/
+out/
+
+# Electron
+dist_electron/
+.electron-builder.env
+
+# IDE & Editor Files
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Test Files & Coverage
+test_output/
+test_results/
+screenshots/
+*.test.js.snap
+
+# Development & Debug
+debug/
+.debug/
+*.debug
+storybook-static/
+
+# Ngrok & Tunneling
+ngrok
+ngrok.exe
+*.ngrok.io
+ngrok.yml
+
+# Cache Directories
+.cache/
+.parcel-cache/
+.sass-cache/
+*.cache
+
+# Lock Files (keep package-lock.json, ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# Local Development
+.local/
+local_config.json
+dev_settings.json
+
+# AI Model Files (large files)
+*.bin
+*.safetensors
+models/
+weights/
+
+# Video Processing Temp Files
+temp_video/
+processing/
+*.processing
+
+# Backup Files
+*.backup
+*.bak
+*.orig
+
+# Documentation Build
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# Mobile Development
+platforms/
+plugins/
+www/
+
+# Sentry
+.sentryclirc
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Vercel
+.vercel
+
+# Netlify
+.netlify/
+
+# Local Tunnel Files
+localtunnel_tmp*
+
+# Custom Exclusions for Pocket Soul
+# Test directories (already removed from repo)
+streaming_test/
+audio_test/
+cam_test/
+test_apis/
+misc/
+.claude/
+
+# Personal/Generated Content
+config/local.json
+private/
+personal_videos/
+user_data/
+
+# Generated Images
+generated_image_*.png
+integrated_app/.env

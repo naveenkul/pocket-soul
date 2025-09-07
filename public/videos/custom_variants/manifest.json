@@ -1,0 +1,18 @@
+{
+  "joy_cowboy_7d9884ec": {
+    "emotion": "joy",
+    "customDescription": "cowboy",
+    "prompt": "The golden yellow character, joyful and happy dressed as a cowboy, bouncing cheerfully, mouth opening and closing as if talking happily, continuous speaking movements, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "joy_cowboy_7d9884ec_2025-09-06T22-00-24-705Z.mp4",
+    "generatedAt": "2025-09-06T22:00:25.751Z",
+    "videoUrl": "https://v3.fal.media/files/koala/_RWxEdJanX32thmb9fHIh_output.mp4"
+  },
+  "sadness_astronaut_b97a600b": {
+    "emotion": "sadness",
+    "customDescription": "astronaut",
+    "prompt": "The deep blue character, sad and melancholy dressed as a astronaut, drooping sadly, mouth turned down as if crying softly, continuous sad talking, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "sadness_astronaut_b97a600b_2025-09-06T22-01-58-535Z.mp4",
+    "generatedAt": "2025-09-06T22:01:59.749Z",
+    "videoUrl": "https://v3.fal.media/files/monkey/R-dHoBriIKYBfofQOUDQw_output.mp4"
+  }
+}
