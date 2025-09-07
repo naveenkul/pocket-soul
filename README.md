@@ -1,5 +1,7 @@
 # 🔮 Pocket Soul - Holographic AI Companion
 
+![Pocket Soul Mockup](assets/mockup.jpeg)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![Python Version](https://img.shields.io/badge/python-%3E%3D3.8-blue)](https://www.python.org/)
@@ -11,8 +13,6 @@
 Pocket Soul transforms any smartphone into a **holographic AI companion** that can see, hear, speak, and express emotions through dynamic character animations. Using cutting-edge AI services, it creates an immersive conversational experience with:
 
 > **Example Character**: See [`assets/sad_character.mp4`](assets/sad_character.mp4) for reference character format and styling.
-
-
 
 
 

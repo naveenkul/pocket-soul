@@ -33,6 +33,7 @@ class HologramDisplay {
         this.currentMood = 'calm';
         this.generationCount = 0;
         this.isStreaming = false;
+        this.lastDisplayedEmotion = null; // Track last emotion for transition logic
         
         // Initialize connection
         this.init();
@@ -385,22 +386,17 @@ class HologramDisplay {
             moodElement.textContent = `${data.emotion} ${data.description}`;
         }
         
-        // Load and play the custom character video
+        // Load and play the custom character video with talking loop support
         if (data.videoPath) {
-            this.playCustomVideo(data.videoPath);
-        }
-        
-        // Play the audio response if provided
-        if (data.audio) {
-            this.playAudioFromBase64(data.audio);
+            this.playCustomVideoWithTalkingLoop(data.videoPath, data.emotion, data.audio);
         }
         
         // Update status to show custom character is active
-        const statusText = document.getElementById('connection-text');
-        if (statusText) {
-            statusText.textContent = `Custom: ${data.description}`;
+        const statusText2 = document.getElementById('connection-text');
+        if (statusText2) {
+            statusText2.textContent = `Custom: ${data.description}`;
             setTimeout(() => {
-                statusText.textContent = 'Connected';
+                statusText2.textContent = 'Connected';
             }, 3000);
         }
     }
@@ -476,6 +472,165 @@ class HologramDisplay {
         }
     }
     
+    playCustomVideoWithTalkingLoop(transitionVideoPath, emotion, audioData) {
+        console.log('🎬 Checking emotion transition:', emotion, 'vs last:', this.lastDisplayedEmotion);
+        
+        // Check if emotion has changed from the last displayed emotion
+        const emotionChanged = this.lastDisplayedEmotion !== emotion.toLowerCase();
+        
+        if (emotionChanged) {
+            console.log('🔄 Emotion changed, playing transition video first');
+            this.playTransitionThenTalkingLoop(transitionVideoPath, emotion, audioData);
+        } else {
+            console.log('🔁 Same emotion, going straight to talking loop');
+            this.clearBuffers();
+            if (this.canvas) this.canvas.style.display = 'none';
+            if (this.video) this.video.style.display = 'block';
+            this.switchToTalkingLoop(emotion, audioData);
+        }
+        
+        // Update the last displayed emotion
+        this.lastDisplayedEmotion = emotion.toLowerCase();
+    }
+    
+    playTransitionThenTalkingLoop(transitionVideoPath, emotion, audioData) {
+        console.log('🎬 Playing transition video then talking loop:', transitionVideoPath, emotion);
+        
+        // Clear any existing video/canvas display
+        this.clearBuffers();
+        
+        // Hide canvas, show video element
+        if (this.canvas) this.canvas.style.display = 'none';
+        if (this.video) {
+            this.video.style.display = 'block';
+            
+            // Ensure transition video path is absolute
+            const fullTransitionPath = transitionVideoPath.startsWith('http') ? transitionVideoPath : 
+                                     (transitionVideoPath.startsWith('/') ? transitionVideoPath : '/' + transitionVideoPath);
+            
+            console.log('📹 Transition Video URL:', fullTransitionPath);
+            
+            this.video.src = fullTransitionPath;
+            this.video.loop = false; // Don't loop transition video
+            this.video.muted = true;
+            
+            // Enable inline playback on iOS
+            this.video.setAttribute('playsinline', '');
+            this.video.setAttribute('webkit-playsinline', '');
+            
+            // Add event listeners
+            this.video.onloadstart = () => console.log('📹 Transition video load started');
+            this.video.onloadeddata = () => console.log('📹 Transition video data loaded');
+            this.video.oncanplay = () => console.log('📹 Transition video can play');
+            
+            this.video.onplay = () => {
+                console.log('📹 Transition video started playing');
+                const statusText = document.getElementById('connection-text');
+                if (statusText) {
+                    statusText.textContent = `✅ Transitioning to ${emotion}`;
+                    statusText.style.color = '#0f0';
+                }
+            };
+            
+            // When transition video ends, switch to talking loop
+            this.video.onended = () => {
+                console.log('📹 Transition video ended, switching to talking loop');
+                this.switchToTalkingLoop(emotion, audioData);
+            };
+            
+            this.video.onerror = (e) => {
+                console.error('📹 Transition video error:', e);
+                const statusText = document.getElementById('connection-text');
+                if (statusText) {
+                    statusText.textContent = `❌ Video error`;
+                    statusText.style.color = '#f00';
+                }
+                // Fallback to talking loop
+                this.switchToTalkingLoop(emotion, audioData);
+            };
+            
+            // Play transition video
+            this.video.play().catch(err => {
+                console.error('Error playing transition video:', err);
+                // Fallback to talking loop immediately
+                this.switchToTalkingLoop(emotion, audioData);
+            });
+            
+            // Also try playing on user interaction if autoplay fails
+            document.addEventListener('touchstart', () => this.video.play(), { once: true });
+            document.addEventListener('click', () => this.video.play(), { once: true });
+        }
+    }
+    
+    switchToTalkingLoop(emotion, audioData) {
+        console.log('🔄 Switching to talking loop for emotion:', emotion);
+        
+        // Map emotions to talking loop directories
+        const emotionMapping = {
+            joy: 'joy',
+            happiness: 'joy',
+            happy: 'joy',
+            anger: 'anger',
+            angry: 'anger',
+            sadness: 'sadness_blue',
+            sad: 'sadness_blue',
+            fear: 'fear',
+            scared: 'fear',
+            disgust: 'disgust',
+            anxiety: 'anxiety',
+            anxious: 'anxiety',
+            calm: 'joy', // fallback to joy if no calm
+            neutral: 'joy' // fallback
+        };
+        
+        const talkingLoopDir = emotionMapping[emotion.toLowerCase()] || 'joy';
+        
+        // Pick a random talking loop video (v1, v2, or v3)
+        const randomVersion = Math.floor(Math.random() * 3) + 1;
+        const talkingLoopPath = `/videos/talking_loops/${talkingLoopDir}/${talkingLoopDir}_talking_v${randomVersion}.mp4`;
+        
+        console.log('📹 Talking loop path:', talkingLoopPath);
+        
+        if (this.video) {
+            this.video.src = talkingLoopPath;
+            this.video.loop = true; // Loop the talking video
+            this.video.muted = false; // Unmute for audio
+            
+            this.video.onplay = () => {
+                console.log('📹 Talking loop started playing');
+                const statusText = document.getElementById('connection-text');
+                if (statusText) {
+                    statusText.textContent = `✅ Talking loop`;
+                    statusText.style.color = '#0f0';
+                    setTimeout(() => {
+                        statusText.textContent = 'Connected';
+                        statusText.style.color = '#0ff';
+                    }, 2000);
+                }
+            };
+            
+            this.video.onerror = (e) => {
+                console.error('📹 Talking loop error:', e);
+                // Fallback to joy talking loop
+                if (talkingLoopDir !== 'joy') {
+                    const fallbackPath = `/videos/talking_loops/joy/joy_talking_v1.mp4`;
+                    console.log('📹 Fallback to:', fallbackPath);
+                    this.video.src = fallbackPath;
+                    this.video.play();
+                }
+            };
+            
+            this.video.play().catch(err => {
+                console.error('Error playing talking loop:', err);
+            });
+        }
+        
+        // Play audio if provided
+        if (audioData) {
+            this.playAudioFromBase64(audioData);
+        }
+    }
+
     playAudioFromBase64(base64Audio) {
         try {
             // Convert base64 to blob
