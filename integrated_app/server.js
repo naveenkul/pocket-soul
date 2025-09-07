@@ -14,6 +14,7 @@ const GeminiService = require('./lib/gemini-service');
 const ElevenLabsStream = require('./lib/elevenlabs-stream');
 const WhisperService = require('./lib/whisper-service');
 const VideoEmotionMapper = require('./lib/video-emotion-mapper');
+const CustomCharacterGenerator = require('./lib/custom-character-generator');
 
 const app = express();
 const server = createServer(app);
@@ -34,12 +35,14 @@ const geminiService = new GeminiService();
 const elevenLabsStream = new ElevenLabsStream();
 const whisperService = new WhisperService();
 const videoEmotionMapper = new VideoEmotionMapper();
+const customCharacterGenerator = new CustomCharacterGenerator();
 
 // Middleware
 app.use(cors());
 app.use(compression());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/generated_files', express.static(path.join(__dirname, '../generated_files')));
+app.use('/videos', express.static(path.join(__dirname, '../public/videos')));
 app.use(express.json());
 
 // Store active sessions
@@ -273,12 +276,41 @@ io.on('connection', (socket) => {
           timestamp: new Date()
         });
         
-        // Detect emotion from user input and AI response
-        const detectedEmotion = detectEmotionFromText(transcription.text, response);
-        console.log(`Detected emotion: ${detectedEmotion}`);
+        // Check for custom character request
+        const customCharacterRequest = detectCustomCharacterRequest(transcription.text);
+        let video = null;
+        let customVideo = null;
+        let detectedEmotion = detectEmotionFromText(transcription.text, response);
         
-        // Get appropriate video
-        const video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+        if (customCharacterRequest) {
+          // Generate custom character
+          console.log(`🎭 Generating custom character: ${customCharacterRequest}`);
+          socket.emit('status', { state: 'generating-character' });
+          
+          try {
+            const customResult = await customCharacterGenerator.getOrCreateVariant(detectedEmotion, customCharacterRequest);
+            
+            if (customResult.success) {
+              customVideo = {
+                url: customResult.path,
+                emotion: detectedEmotion,
+                description: customCharacterRequest,
+                cached: customResult.cached
+              };
+              console.log(`✅ Custom character ${customResult.cached ? 'retrieved' : 'generated'}: ${customCharacterRequest}`);
+            } else {
+              console.log('❌ Custom character generation failed, using standard emotion');
+              video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+            }
+          } catch (error) {
+            console.error('Custom character generation error:', error);
+            video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+          }
+        } else {
+          // Standard emotion detection and video selection
+          console.log(`Detected emotion: ${detectedEmotion}`);
+          video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+        }
         
         // Generate audio
         socket.emit('status', { state: 'generating-audio' });
@@ -288,16 +320,22 @@ io.on('connection', (socket) => {
           const audioBuffer = await elevenLabsStream.generateAudioREST(response);
           const audioTime = Date.now() - audioStartTime;
           
+          const videoData = customVideo ? customVideo : (video ? {
+            filename: video.filename,
+            url: `/generated_files/${video.filename}`,
+            emotion: video.emotion
+          } : null);
+          
           // Send complete response with video
           socket.emit('conversation-complete', {
             transcription: transcription.text,
             response: response,
-            emotion: detectedEmotion,
+            emotion: customVideo ? customVideo.emotion : detectedEmotion,
             audio: audioBuffer.toString('base64'),
-            video: video ? {
-              filename: video.filename,
-              url: `/generated_files/${video.filename}`,
-              emotion: video.emotion
+            video: videoData,
+            customCharacter: customVideo ? {
+              description: customVideo.description,
+              cached: customVideo.cached
             } : null,
             timing: {
               transcription: 0,
@@ -314,13 +352,13 @@ io.on('connection', (socket) => {
           hologramConnections.forEach(conn => {
             conn.socket.emit('display-content', {
               audio: audioBuffer.toString('base64'),
-              video: video ? {
-                filename: video.filename,
-                url: `/generated_files/${video.filename}`,
-                emotion: video.emotion
-              } : null,
+              video: videoData,
               text: response,
-              emotion: detectedEmotion
+              emotion: customVideo ? customVideo.emotion : detectedEmotion,
+              customCharacter: customVideo ? {
+                description: customVideo.description,
+                cached: customVideo.cached
+              } : null
             });
           });
           
@@ -384,8 +422,40 @@ io.on('connection', (socket) => {
         timestamp: new Date()
       });
       
-      const detectedEmotion = detectEmotionFromText(text, response);
-      const video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+      // Check for custom character request
+      const customCharacterRequest = detectCustomCharacterRequest(text);
+      let video = null;
+      let customVideo = null;
+      let detectedEmotion = detectEmotionFromText(text, response);
+      
+      if (customCharacterRequest) {
+        // Generate custom character
+        console.log(`🎭 Generating custom character: ${customCharacterRequest}`);
+        socket.emit('status', { state: 'generating-character' });
+        
+        try {
+          const customResult = await customCharacterGenerator.generateOrRetrieve(detectedEmotion, customCharacterRequest);
+          
+          if (customResult.success) {
+            customVideo = {
+              url: customResult.path,
+              emotion: detectedEmotion,
+              description: customCharacterRequest,
+              cached: customResult.cached
+            };
+            console.log(`✅ Custom character ${customResult.cached ? 'retrieved' : 'generated'}: ${customCharacterRequest}`);
+          } else {
+            console.log('❌ Custom character generation failed, using standard emotion');
+            video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+          }
+        } catch (error) {
+          console.error('Custom character generation error:', error);
+          video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+        }
+      } else {
+        // Standard emotion detection and video selection
+        video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+      }
       
       // Generate audio
       socket.emit('status', { state: 'generating-audio' });
@@ -393,15 +463,21 @@ io.on('connection', (socket) => {
       try {
         const audioBuffer = await elevenLabsStream.generateAudioREST(response);
         
+        const videoData = customVideo ? customVideo : (video ? {
+          filename: video.filename,
+          url: `/generated_files/${video.filename}`,
+          emotion: video.emotion
+        } : null);
+        
         socket.emit('conversation-complete', {
           transcription: text,
           response: response,
-          emotion: detectedEmotion,
+          emotion: customVideo ? customVideo.emotion : detectedEmotion,
           audio: audioBuffer.toString('base64'),
-          video: video ? {
-            filename: video.filename,
-            url: `/generated_files/${video.filename}`,
-            emotion: video.emotion
+          video: videoData,
+          customCharacter: customVideo ? {
+            description: customVideo.description,
+            cached: customVideo.cached
           } : null,
           timing: {
             total: Date.now() - startTime
@@ -415,13 +491,13 @@ io.on('connection', (socket) => {
         hologramConnections.forEach(conn => {
           conn.socket.emit('display-content', {
             audio: audioBuffer.toString('base64'),
-            video: video ? {
-              filename: video.filename,
-              url: `/generated_files/${video.filename}`,
-              emotion: video.emotion
-            } : null,
+            video: videoData,
             text: response,
-            emotion: detectedEmotion
+            emotion: customVideo ? customVideo.emotion : detectedEmotion,
+            customCharacter: customVideo ? {
+              description: customVideo.description,
+              cached: customVideo.cached
+            } : null
           });
         });
         
@@ -517,6 +593,57 @@ io.on('connection', (socket) => {
     metrics.connectedClients = connections.size;
   });
 });
+
+// Custom character request detection
+function detectCustomCharacterRequest(userInput) {
+  const text = userInput.toLowerCase();
+  
+  // Custom character triggers
+  const customTriggers = [
+    'be a', 'become a', 'turn into', 'transform into',
+    'can you be', 'could you be', 'please be',
+    'show me a', 'let me see a', 'i want a',
+    'be like a', 'act like a'
+  ];
+
+  const hasCustomRequest = customTriggers.some(trigger => text.includes(trigger));
+  
+  if (!hasCustomRequest) {
+    return null;
+  }
+
+  // Extract the character description
+  let characterDescription = text;
+  for (const trigger of customTriggers) {
+    if (text.includes(trigger)) {
+      const parts = text.split(trigger);
+      if (parts.length > 1) {
+        characterDescription = parts[1].trim();
+        // Extract just the character type (e.g., "cowboy" from "happy cowboy and tell me...")
+        const words = characterDescription.split(' ');
+        // Look for the character type - usually first few words
+        for (let i = 0; i < Math.min(3, words.length); i++) {
+          const word = words[i];
+          if (['cowboy', 'pirate', 'ninja', 'astronaut', 'robot', 'wizard', 'detective', 'superhero', 'chef', 'princess', 'vampire', 'knight', 'fairy', 'zombie', 'alien'].includes(word)) {
+            characterDescription = word;
+            break;
+          }
+        }
+        // If no specific character found, take first word or two
+        if (characterDescription === text || characterDescription.includes('and') || characterDescription.includes('?')) {
+          characterDescription = words[0] || 'character';
+          if (words.length > 1 && !['and', 'tell', 'show', 'me', 'the', 'a', 'an'].includes(words[1])) {
+            characterDescription = `${words[0]} ${words[1]}`;
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  console.log(`🎯 Custom character request detected: "${characterDescription}"`);
+  return characterDescription;
+}
 
 // Enhanced emotion detection from user input and AI response
 function detectEmotionFromText(userInput, aiResponse) {
