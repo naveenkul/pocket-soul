@@ -11,6 +11,8 @@ const { fal } = require('@fal-ai/client');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleAIFileManager } = require('@google/generative-ai/server');
 
 // Set FAL_KEY environment variable for fal client
 if (process.env.FAL_API_KEY) {
@@ -21,13 +23,20 @@ class CustomCharacterGenerator {
     constructor() {
         this.cacheDir = path.join(__dirname, '../public/videos/custom_variants');
         this.cacheManifest = path.join(this.cacheDir, 'manifest.json');
+        this.imagesDir = path.join(this.cacheDir, 'generated_images');
         this.referenceImage = path.join(__dirname, '../assets/reference_character.png');
+        
+        // Initialize Gemini for image generation (nano banana)
+        this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash-image-preview" });
+        
         this.initializeCache();
     }
 
     async initializeCache() {
-        // Create cache directory if it doesn't exist
+        // Create cache directories if they don't exist
         await fs.mkdir(this.cacheDir, { recursive: true });
+        await fs.mkdir(this.imagesDir, { recursive: true });
         
         // Load or create manifest
         try {
@@ -74,6 +83,72 @@ class CustomCharacterGenerator {
         }
         
         return { exists: false };
+    }
+
+    /**
+     * Generate character image using Gemini nano banana (gemini-2.5-flash-image-preview)
+     */
+    async generateCharacterImage(customDescription, emotion) {
+        const imageKey = this.generateCacheKey('image', customDescription);
+        const imagePath = path.join(this.imagesDir, `${imageKey}.png`);
+        
+        // Check if image already exists
+        try {
+            await fs.access(imagePath);
+            console.log(`✅ Found cached character image: ${imageKey}`);
+            return imagePath;
+        } catch (error) {
+            // Image doesn't exist, generate new one
+        }
+        
+        try {
+            console.log(`🎨 Generating character image: ${customDescription} with ${emotion} emotion`);
+            
+            // Build transformation prompt based on your example
+            const transformPrompt = `Transform this character to be a ${customDescription} with ${emotion} emotion. Don't change the basic character design, just adapt it to be a ${customDescription} while keeping the cute, translucent, ghost-like appearance. Maintain the same friendly cartoon style.`;
+            
+            console.log(`   Transform Prompt: ${transformPrompt}`);
+            
+            // Read reference character image
+            const imageBuffer = await fs.readFile(this.referenceImage);
+            const imageBase64 = imageBuffer.toString('base64');
+            
+            // Use Gemini 2.5 Flash Image Preview (nano banana)
+            const result = await this.model.generateContent([
+                transformPrompt,
+                {
+                    inlineData: {
+                        data: imageBase64,
+                        mimeType: 'image/png'
+                    }
+                }
+            ]);
+            
+            // Extract image data from response
+            if (result.response && result.response.candidates && result.response.candidates[0]) {
+                const candidate = result.response.candidates[0];
+                
+                if (candidate.content && candidate.content.parts) {
+                    for (const part of candidate.content.parts) {
+                        if (part.inlineData && part.inlineData.data) {
+                            // Save the generated image
+                            const buffer = Buffer.from(part.inlineData.data, 'base64');
+                            await fs.writeFile(imagePath, buffer);
+                            console.log(`✅ Character image generated and saved: ${imageKey}.png`);
+                            return imagePath;
+                        }
+                    }
+                }
+            }
+            
+            console.error('❌ No image data found in Gemini response');
+            throw new Error('No image data in response');
+            
+        } catch (error) {
+            console.error(`❌ Failed to generate character image: ${error.message}`);
+            console.log('   Falling back to reference image');
+            return this.referenceImage;
+        }
     }
 
     /**
@@ -132,14 +207,20 @@ class CustomCharacterGenerator {
         console.log(`   Prompt: ${prompt}`);
 
         try {
-            // Read and encode reference image
-            const imageBuffer = await fs.readFile(this.referenceImage);
+            // Generate or retrieve custom character image using Gemini (nano banana)
+            const characterImagePath = await this.generateCharacterImage(customDescription, emotion);
+            
+            // Read and encode the custom character image
+            const imageBuffer = await fs.readFile(characterImagePath);
             const imageBase64 = imageBuffer.toString('base64');
             const imageDataUrl = `data:image/png;base64,${imageBase64}`;
 
-            // Call Veo3 API
+            // Call Veo3 API with timeout
             console.log('📤 Calling fal API with image-to-video...');
-            const result = await fal.run("fal-ai/veo3/fast/image-to-video", {
+            console.log('🔑 FAL_KEY set:', !!process.env.FAL_KEY);
+            console.log('🔑 FAL_API_KEY set:', !!process.env.FAL_API_KEY);
+            
+            const apiCall = fal.run("fal-ai/veo3/fast/image-to-video", {
                 input: {
                     prompt: prompt,
                     image_url: imageDataUrl,
@@ -148,6 +229,13 @@ class CustomCharacterGenerator {
                     resolution: "720p"
                 }
             });
+            
+            // Add timeout handling (2 minutes max)
+            const timeout = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Veo3 API timeout after 2 minutes')), 120000)
+            );
+            
+            const result = await Promise.race([apiCall, timeout]);
 
             console.log('📥 API Response:', JSON.stringify(result, null, 2));
 
@@ -165,6 +253,15 @@ class CustomCharacterGenerator {
                 } else if (result.output && result.output.video_url) {
                     videoUrl = result.output.video_url;
                 }
+                
+                console.log('🔍 Video URL extraction:', {
+                    hasData: !!result.data,
+                    hasVideo: !!result.video,
+                    hasVideoUrl: !!result.video_url,
+                    hasUrl: !!result.url,
+                    extractedUrl: videoUrl,
+                    fullResult: JSON.stringify(result, null, 2)
+                });
             }
 
             if (videoUrl) {

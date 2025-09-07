@@ -52,10 +52,25 @@ class VideoEmotionMapper {
       'happiness', 'joy', 'love', 'neutral', 'sadness', 'surprise'
     ];
     
+    // Add emotion aliases to handle variations
+    const emotionAliases = {
+      'happy': 'happiness',
+      'excited': 'excitement',
+      'sad': 'sadness'
+    };
+    
     const lowerFilename = filename.toLowerCase();
     
+    // First check for direct matches
     for (const emotion of emotions) {
       if (lowerFilename.includes(emotion)) {
+        return emotion;
+      }
+    }
+    
+    // Then check for aliases
+    for (const [alias, emotion] of Object.entries(emotionAliases)) {
+      if (lowerFilename.includes(alias)) {
         return emotion;
       }
     }

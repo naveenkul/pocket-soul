@@ -49,6 +49,7 @@ app.use(express.json());
 const sessions = new Map();
 const activeStreams = new Map();
 const connections = new Map();
+const activeCustomCharacters = new Map(); // Track active custom character per session
 
 // Performance metrics
 const metrics = {
@@ -282,9 +283,12 @@ io.on('connection', (socket) => {
         let customVideo = null;
         let detectedEmotion = detectEmotionFromText(transcription.text, response);
         
+        // Check if we have an active custom character for this session
+        const activeCustomChar = activeCustomCharacters.get(socket.id);
+        
         if (customCharacterRequest) {
-          // Generate custom character
-          console.log(`🎭 Generating custom character: ${customCharacterRequest}`);
+          // New custom character request - generate or retrieve
+          console.log(`🎭 New custom character request: ${customCharacterRequest}`);
           socket.emit('status', { state: 'generating-character' });
           
           try {
@@ -297,6 +301,8 @@ io.on('connection', (socket) => {
                 description: customCharacterRequest,
                 cached: customResult.cached
               };
+              // Store as active custom character for this session
+              activeCustomCharacters.set(socket.id, customVideo);
               console.log(`✅ Custom character ${customResult.cached ? 'retrieved' : 'generated'}: ${customCharacterRequest}`);
             } else {
               console.log('❌ Custom character generation failed, using standard emotion');
@@ -304,6 +310,31 @@ io.on('connection', (socket) => {
             }
           } catch (error) {
             console.error('Custom character generation error:', error);
+            video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+          }
+        } else if (activeCustomChar && activeCustomChar.description) {
+          // Continue with existing custom character but update emotion
+          console.log(`🎭 Continuing with custom character: ${activeCustomChar.description} (emotion: ${detectedEmotion})`);
+          
+          try {
+            const customResult = await customCharacterGenerator.getOrCreateVariant(detectedEmotion, activeCustomChar.description);
+            
+            if (customResult.success) {
+              customVideo = {
+                url: customResult.path,
+                emotion: detectedEmotion,
+                description: activeCustomChar.description,
+                cached: customResult.cached
+              };
+              // Update the stored custom character with new emotion
+              activeCustomCharacters.set(socket.id, customVideo);
+              console.log(`✅ Updated custom character emotion: ${activeCustomChar.description} → ${detectedEmotion}`);
+            } else {
+              console.log('❌ Custom character update failed, using standard emotion');
+              video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+            }
+          } catch (error) {
+            console.error('Custom character update error:', error);
             video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
           }
         } else {
@@ -422,19 +453,31 @@ io.on('connection', (socket) => {
         timestamp: new Date()
       });
       
+      // Check for reset commands first
+      const resetCommands = ['go back to normal', 'be normal', 'reset character', 'default character', 'stop being', 'go back to default'];
+      const isResetCommand = resetCommands.some(cmd => text.toLowerCase().includes(cmd));
+      
+      if (isResetCommand) {
+        console.log(`🔄 Reset command detected, clearing custom character for session ${socket.id}`);
+        activeCustomCharacters.delete(socket.id);
+      }
+      
       // Check for custom character request
       const customCharacterRequest = detectCustomCharacterRequest(text);
       let video = null;
       let customVideo = null;
       let detectedEmotion = detectEmotionFromText(text, response);
       
+      // Check if we have an active custom character for this session
+      const activeCustomChar = activeCustomCharacters.get(socket.id);
+      
       if (customCharacterRequest) {
-        // Generate custom character
+        // New custom character request - generate or retrieve
         console.log(`🎭 Generating custom character: ${customCharacterRequest}`);
         socket.emit('status', { state: 'generating-character' });
         
         try {
-          const customResult = await customCharacterGenerator.generateOrRetrieve(detectedEmotion, customCharacterRequest);
+          const customResult = await customCharacterGenerator.getOrCreateVariant(detectedEmotion, customCharacterRequest);
           
           if (customResult.success) {
             customVideo = {
@@ -443,6 +486,8 @@ io.on('connection', (socket) => {
               description: customCharacterRequest,
               cached: customResult.cached
             };
+            // Store the custom character for this session
+            activeCustomCharacters.set(socket.id, customVideo);
             console.log(`✅ Custom character ${customResult.cached ? 'retrieved' : 'generated'}: ${customCharacterRequest}`);
           } else {
             console.log('❌ Custom character generation failed, using standard emotion');
@@ -450,6 +495,32 @@ io.on('connection', (socket) => {
           }
         } catch (error) {
           console.error('Custom character generation error:', error);
+          video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+        }
+      } else if (activeCustomChar && activeCustomChar.description && !isResetCommand) {
+        // Continue with existing custom character but update emotion
+        console.log(`🎭 Continuing with custom character: ${activeCustomChar.description} (emotion: ${detectedEmotion})`);
+        socket.emit('status', { state: 'generating-character' });
+        
+        try {
+          const customResult = await customCharacterGenerator.getOrCreateVariant(detectedEmotion, activeCustomChar.description);
+          
+          if (customResult.success) {
+            customVideo = {
+              url: customResult.path,
+              emotion: detectedEmotion,
+              description: activeCustomChar.description,
+              cached: customResult.cached
+            };
+            // Update the stored character with new emotion
+            activeCustomCharacters.set(socket.id, customVideo);
+            console.log(`✅ Updated custom character emotion: ${activeCustomChar.description} -> ${detectedEmotion}`);
+          } else {
+            console.log('❌ Custom character emotion update failed, using standard emotion');
+            video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
+          }
+        } catch (error) {
+          console.error('Custom character emotion update error:', error);
           video = videoEmotionMapper.getVideoForEmotion(detectedEmotion);
         }
       } else {
@@ -619,22 +690,30 @@ function detectCustomCharacterRequest(userInput) {
       const parts = text.split(trigger);
       if (parts.length > 1) {
         characterDescription = parts[1].trim();
-        // Extract just the character type (e.g., "cowboy" from "happy cowboy and tell me...")
+        // Clean punctuation
+        characterDescription = characterDescription.replace(/[?!.,;:]/g, '').trim();
+        // Extract character description - take first 1-3 meaningful words
         const words = characterDescription.split(' ');
-        // Look for the character type - usually first few words
-        for (let i = 0; i < Math.min(3, words.length); i++) {
-          const word = words[i];
-          if (['cowboy', 'pirate', 'ninja', 'astronaut', 'robot', 'wizard', 'detective', 'superhero', 'chef', 'princess', 'vampire', 'knight', 'fairy', 'zombie', 'alien'].includes(word)) {
-            characterDescription = word;
-            break;
+        const stopWords = ['and', 'tell', 'show', 'me', 'the', 'a', 'an', 'that', 'can', 'will', 'would', 'should', 'please', 'now', 'today', 'tomorrow', 'about', 'what', 'how', 'why', 'when', 'where'];
+        
+        // Find meaningful character words (skip common stop words)
+        let characterWords = [];
+        for (let i = 0; i < Math.min(4, words.length); i++) {
+          const word = words[i].toLowerCase();
+          if (!stopWords.includes(word) && word.length > 1) {
+            characterWords.push(word);
+            // Stop at 2-3 character words or if we hit a stop word after getting at least one word
+            if (characterWords.length >= 2 || (characterWords.length >= 1 && i < words.length - 1 && stopWords.includes(words[i + 1]))) {
+              break;
+            }
           }
         }
-        // If no specific character found, take first word or two
-        if (characterDescription === text || characterDescription.includes('and') || characterDescription.includes('?')) {
+        
+        // Use the character words we found, or fallback to first word
+        if (characterWords.length > 0) {
+          characterDescription = characterWords.join(' ');
+        } else {
           characterDescription = words[0] || 'character';
-          if (words.length > 1 && !['and', 'tell', 'show', 'me', 'the', 'a', 'an'].includes(words[1])) {
-            characterDescription = `${words[0]} ${words[1]}`;
-          }
         }
         break;
       }

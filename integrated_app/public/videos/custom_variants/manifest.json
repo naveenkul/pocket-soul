@@ -1,1 +1,50 @@
-{}
+{
+  "happiness_happy_minion_f8f81d82": {
+    "emotion": "happiness",
+    "customDescription": "happy minion",
+    "prompt": "The translucent character with soft glow dressed as a happy minion, gentle floating, mouth moving as if having a conversation, continuous talking, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "happiness_happy_minion_f8f81d82_2025-09-07T01-09-05-093Z.mp4",
+    "generatedAt": "2025-09-07T01:09:06.462Z",
+    "videoUrl": "https://v3.fal.media/files/rabbit/dIk3hrLrif04WXNR9Frgt_output.mp4"
+  },
+  "happiness_happy_banana_8c9f4736": {
+    "emotion": "happiness",
+    "customDescription": "happy banana",
+    "prompt": "The translucent character with soft glow dressed as a happy banana, gentle floating, mouth moving as if having a conversation, continuous talking, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "happiness_happy_banana_8c9f4736_2025-09-07T01-21-55-118Z.mp4",
+    "generatedAt": "2025-09-07T01:21:56.437Z",
+    "videoUrl": "https://v3.fal.media/files/elephant/8-wqU0sSxAe2kMEGT2HbS_output.mp4"
+  },
+  "joy_funny_minion_dd5cf0a6": {
+    "emotion": "joy",
+    "customDescription": "funny minion",
+    "prompt": "The golden yellow character, joyful and happy dressed as a funny minion, bouncing cheerfully, mouth opening and closing as if talking happily, continuous speaking movements, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "joy_funny_minion_dd5cf0a6_2025-09-07T01-28-29-265Z.mp4",
+    "generatedAt": "2025-09-07T01:28:30.681Z",
+    "videoUrl": "https://v3.fal.media/files/elephant/f2CUYk1G9lp49o5TAKCXp_output.mp4"
+  },
+  "happiness_banana_45a78869": {
+    "emotion": "happiness",
+    "customDescription": "banana",
+    "prompt": "The translucent character with soft glow dressed as a banana, gentle floating, mouth moving as if having a conversation, continuous talking, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "happiness_banana_45a78869_2025-09-07T01-36-22-427Z.mp4",
+    "generatedAt": "2025-09-07T01:36:23.667Z",
+    "videoUrl": "https://v3.fal.media/files/tiger/BDa4VPlrr2pGgo8qEBS0m_output.mp4"
+  },
+  "sadness_cowboy_0632f9cb": {
+    "emotion": "sadness",
+    "customDescription": "cowboy",
+    "prompt": "The deep blue character, sad and melancholy dressed as a cowboy, drooping sadly, mouth turned down as if crying softly, continuous sad talking, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "sadness_cowboy_0632f9cb_2025-09-07T01-51-28-149Z.mp4",
+    "generatedAt": "2025-09-07T01:51:29.378Z",
+    "videoUrl": "https://v3.fal.media/files/lion/K-AwxuNPI6iE5Z8YbcQUY_output.mp4"
+  },
+  "anger_cowboy_c90e3124": {
+    "emotion": "anger",
+    "customDescription": "cowboy",
+    "prompt": "The bright red character, angry and furious dressed as a cowboy, shaking with rage, mouth opening aggressively as if yelling, steam effects, continuous angry talking, maintaining the cute ghost-like shape, 8 seconds",
+    "filename": "anger_cowboy_c90e3124_2025-09-07T01-52-52-141Z.mp4",
+    "generatedAt": "2025-09-07T01:52:57.717Z",
+    "videoUrl": "https://v3.fal.media/files/lion/_WbEu7_FNrWfJDJkrbJFx_output.mp4"
+  }
+}
